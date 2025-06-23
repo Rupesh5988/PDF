@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 600px;
+                 background-color: #1a1a2e;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#4ecdc4", "font": {"color": "white"}, "id": "Sofware Process", "label": "Sofware Process", "shape": "dot", "size": 25, "title": "Sofware Process (ORG)"}, {"color": "#45b7d1", "font": {"color": "white"}, "id": "Engg", "label": "Engg", "shape": "dot", "size": 25, "title": "Engg (GPE)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Process Properties", "label": "Process Properties", "shape": "dot", "size": 25, "title": "Process Properties (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Q\u0026P", "label": "Q\u0026P", "shape": "dot", "size": 25, "title": "Q\u0026P (ORG)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "\uf06eI.e", "label": "\uf06eI.e", "shape": "dot", "size": 25, "title": "\uf06eI.e (PERSON)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Development Process", "label": "Development Process", "shape": "dot", "size": 25, "title": "Development Process (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Process Models", "label": "Process Models", "shape": "dot", "size": 25, "title": "Process Models (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Development Process \n\uf06eA", "label": "Development Process \n\uf06eA", "shape": "dot", "size": 25, "title": "Development Process \n\uf06eA (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Requirement Analysis \n\uf06eTo", "label": "Requirement Analysis \n\uf06eTo", "shape": "dot", "size": 25, "title": "Requirement Analysis \n\uf06eTo (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "SRS", "label": "SRS", "shape": "dot", "size": 25, "title": "SRS (ORG)"}, {"color": "#ff9ff3", "font": {"color": "white"}, "id": "\uf06eJob", "label": "\uf06eJob", "shape": "dot", "size": 25, "title": "\uf06eJob (EVENT)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "\uf06eReq", "label": "\uf06eReq", "shape": "dot", "size": 25, "title": "\uf06eReq (ORG)"}, {"color": "#feca57", "font": {"color": "white"}, "id": "\uf06eIterative", "label": "\uf06eIterative", "shape": "dot", "size": 25, "title": "\uf06eIterative (PRODUCT)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Waterfall Model \n\uf06eLinear", "label": "Waterfall Model \n\uf06eLinear", "shape": "dot", "size": 25, "title": "Waterfall Model \n\uf06eLinear (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Waterfall Advantages", "label": "Waterfall Advantages", "shape": "dot", "size": 25, "title": "Waterfall Advantages (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Iterative Development", "label": "Iterative Development", "shape": "dot", "size": 25, "title": "Iterative Development (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Agile", "label": "Agile", "shape": "dot", "size": 25, "title": "Agile (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Time Boxed Iterations", "label": "Time Boxed Iterations", "shape": "dot", "size": 25, "title": "Time Boxed Iterations (ORG)"}, {"color": "#45b7d1", "font": {"color": "white"}, "id": "\uf06eIn", "label": "\uf06eIn", "shape": "dot", "size": 25, "title": "\uf06eIn (GPE)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "Time Boxed \nIterations", "label": "Time Boxed \nIterations", "shape": "dot", "size": 25, "title": "Time Boxed \nIterations (PERSON)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "\uf06eCan", "label": "\uf06eCan", "shape": "dot", "size": 25, "title": "\uf06eCan (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Pipelined Execution", "label": "Pipelined Execution", "shape": "dot", "size": 25, "title": "Pipelined Execution (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Timeboxing Execution \n \nSoftware \nRequirements", "label": "Timeboxing Execution \n \nSoftware \nRequirements", "shape": "dot", "size": 25, "title": "Timeboxing Execution \n \nSoftware \nRequirements (ORG)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "TB1", "label": "TB1", "shape": "dot", "size": 25, "title": "TB1 (PERSON)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "TB2 \nRequirements", "label": "TB2 \nRequirements", "shape": "dot", "size": 25, "title": "TB2 \nRequirements (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "TB3 \nRequirements", "label": "TB3 \nRequirements", "shape": "dot", "size": 25, "title": "TB3 \nRequirements (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "\uf06eFirst", "label": "\uf06eFirst", "shape": "dot", "size": 25, "title": "\uf06eFirst (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "T+T/3", "label": "T+T/3", "shape": "dot", "size": 25, "title": "T+T/3 (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Team Size", "label": "Team Size", "shape": "dot", "size": 25, "title": "Team Size (ORG)"}, {"color": "#45b7d1", "font": {"color": "white"}, "id": "S \n\uf06eIn", "label": "S \n\uf06eIn", "shape": "dot", "size": 25, "title": "S \n\uf06eIn (GPE)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "Brook", "label": "Brook", "shape": "dot", "size": 25, "title": "Brook (PERSON)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "TB3\nRequirements\nAnalysis", "label": "TB3\nRequirements\nAnalysis", "shape": "dot", "size": 25, "title": "TB3\nRequirements\nAnalysis (ORG)"}, {"color": "#feca57", "font": {"color": "white"}, "id": "CM", "label": "CM", "shape": "dot", "size": 25, "title": "CM (PRODUCT)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "UI", "label": "UI", "shape": "dot", "size": 25, "title": "UI (ORG)"}]);
+                  edges = new vis.DataSet([{"from": "Sofware Process", "to": "Engg", "width": 2}, {"from": "\uf06eI.e", "to": "Sofware Process", "width": 2}, {"from": "\uf06eI.e", "to": "Q\u0026P", "width": 2}, {"from": "\uf06eI.e", "to": "Process Properties", "width": 2}, {"from": "Sofware Process", "to": "Q\u0026P", "width": 2}, {"from": "Sofware Process", "to": "Process Properties", "width": 2}, {"from": "Q\u0026P", "to": "Process Properties", "width": 2}, {"from": "Development Process", "to": "Process Models", "width": 2}, {"from": "Development Process", "to": "Development Process \n\uf06eA", "width": 2}, {"from": "Development Process", "to": "Sofware Process", "width": 2}, {"from": "Development Process", "to": "Q\u0026P", "width": 2}, {"from": "Process Models", "to": "Development Process \n\uf06eA", "width": 2}, {"from": "Process Models", "to": "Sofware Process", "width": 2}, {"from": "Process Models", "to": "Q\u0026P", "width": 2}, {"from": "Development Process \n\uf06eA", "to": "Sofware Process", "width": 2}, {"from": "Development Process \n\uf06eA", "to": "Q\u0026P", "width": 2}, {"from": "Sofware Process", "to": "Requirement Analysis \n\uf06eTo", "width": 2}, {"from": "SRS", "to": "Sofware Process", "width": 2}, {"from": "Sofware Process", "to": "\uf06eJob", "width": 2}, {"from": "Sofware Process", "to": "\uf06eReq", "width": 2}, {"from": "\uf06eIterative", "to": "SRS", "width": 2}, {"from": "\uf06eIterative", "to": "Waterfall Advantages", "width": 2}, {"from": "\uf06eIterative", "to": "Sofware Process", "width": 2}, {"from": "\uf06eIterative", "to": "Waterfall Model \n\uf06eLinear", "width": 2}, {"from": "SRS", "to": "Waterfall Advantages", "width": 2}, {"from": "SRS", "to": "Waterfall Model \n\uf06eLinear", "width": 2}, {"from": "Waterfall Advantages", "to": "Sofware Process", "width": 2}, {"from": "Waterfall Advantages", "to": "Waterfall Model \n\uf06eLinear", "width": 2}, {"from": "Sofware Process", "to": "Waterfall Model \n\uf06eLinear", "width": 2}, {"from": "Sofware Process", "to": "Iterative Development", "width": 2}, {"from": "\uf06eIterative", "to": "Iterative Development", "width": 2}, {"from": "\uf06eIterative", "to": "Agile", "width": 2}, {"from": "Iterative Development", "to": "Agile", "width": 2}, {"from": "Sofware Process", "to": "Agile", "width": 2}, {"from": "TB1", "to": "Time Boxed \nIterations", "width": 2}, {"from": "TB1", "to": "S \n\uf06eIn", "width": 2}, {"from": "TB1", "to": "TB2 \nRequirements", "width": 2}, {"from": "TB1", "to": "Time Boxed Iterations", "width": 2}, {"from": "TB1", "to": "TB3 \nRequirements", "width": 2}, {"from": "TB1", "to": "Pipelined Execution", "width": 2}, {"from": "TB1", "to": "Sofware Process", "width": 2}, {"from": "TB1", "to": "\uf06eIn", "width": 2}, {"from": "TB1", "to": "\uf06eFirst", "width": 2}, {"from": "TB1", "to": "T+T/3", "width": 2}, {"from": "TB1", "to": "Team Size", "width": 2}, {"from": "TB1", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "TB1", "to": "\uf06eCan", "width": 2}, {"from": "Time Boxed \nIterations", "to": "S \n\uf06eIn", "width": 2}, {"from": "Time Boxed \nIterations", "to": "TB2 \nRequirements", "width": 2}, {"from": "Time Boxed \nIterations", "to": "Time Boxed Iterations", "width": 2}, {"from": "Time Boxed \nIterations", "to": "TB3 \nRequirements", "width": 2}, {"from": "Time Boxed \nIterations", "to": "Pipelined Execution", "width": 2}, {"from": "Time Boxed \nIterations", "to": "Sofware Process", "width": 2}, {"from": "Time Boxed \nIterations", "to": "\uf06eIn", "width": 2}, {"from": "Time Boxed \nIterations", "to": "\uf06eFirst", "width": 2}, {"from": "Time Boxed \nIterations", "to": "T+T/3", "width": 2}, {"from": "Time Boxed \nIterations", "to": "Team Size", "width": 2}, {"from": "Time Boxed \nIterations", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "Time Boxed \nIterations", "to": "\uf06eCan", "width": 2}, {"from": "S \n\uf06eIn", "to": "TB2 \nRequirements", "width": 2}, {"from": "S \n\uf06eIn", "to": "Time Boxed Iterations", "width": 2}, {"from": "S \n\uf06eIn", "to": "TB3 \nRequirements", "width": 2}, {"from": "S \n\uf06eIn", "to": "Pipelined Execution", "width": 2}, {"from": "S \n\uf06eIn", "to": "Sofware Process", "width": 2}, {"from": "S \n\uf06eIn", "to": "\uf06eIn", "width": 2}, {"from": "S \n\uf06eIn", "to": "\uf06eFirst", "width": 2}, {"from": "S \n\uf06eIn", "to": "T+T/3", "width": 2}, {"from": "S \n\uf06eIn", "to": "Team Size", "width": 2}, {"from": "S \n\uf06eIn", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "S \n\uf06eIn", "to": "\uf06eCan", "width": 2}, {"from": "TB2 \nRequirements", "to": "Time Boxed Iterations", "width": 2}, {"from": "TB2 \nRequirements", "to": "TB3 \nRequirements", "width": 2}, {"from": "TB2 \nRequirements", "to": "Pipelined Execution", "width": 2}, {"from": "TB2 \nRequirements", "to": "Sofware Process", "width": 2}, {"from": "TB2 \nRequirements", "to": "\uf06eIn", "width": 2}, {"from": "TB2 \nRequirements", "to": "\uf06eFirst", "width": 2}, {"from": "TB2 \nRequirements", "to": "T+T/3", "width": 2}, {"from": "TB2 \nRequirements", "to": "Team Size", "width": 2}, {"from": "TB2 \nRequirements", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "TB2 \nRequirements", "to": "\uf06eCan", "width": 2}, {"from": "Time Boxed Iterations", "to": "TB3 \nRequirements", "width": 2}, {"from": "Time Boxed Iterations", "to": "Pipelined Execution", "width": 2}, {"from": "Time Boxed Iterations", "to": "Sofware Process", "width": 2}, {"from": "Time Boxed Iterations", "to": "\uf06eIn", "width": 2}, {"from": "Time Boxed Iterations", "to": "\uf06eFirst", "width": 2}, {"from": "Time Boxed Iterations", "to": "T+T/3", "width": 2}, {"from": "Time Boxed Iterations", "to": "Team Size", "width": 2}, {"from": "Time Boxed Iterations", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "Time Boxed Iterations", "to": "\uf06eCan", "width": 2}, {"from": "TB3 \nRequirements", "to": "Pipelined Execution", "width": 2}, {"from": "TB3 \nRequirements", "to": "Sofware Process", "width": 2}, {"from": "TB3 \nRequirements", "to": "\uf06eIn", "width": 2}, {"from": "TB3 \nRequirements", "to": "\uf06eFirst", "width": 2}, {"from": "TB3 \nRequirements", "to": "T+T/3", "width": 2}, {"from": "TB3 \nRequirements", "to": "Team Size", "width": 2}, {"from": "TB3 \nRequirements", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "TB3 \nRequirements", "to": "\uf06eCan", "width": 2}, {"from": "Pipelined Execution", "to": "Sofware Process", "width": 2}, {"from": "Pipelined Execution", "to": "\uf06eIn", "width": 2}, {"from": "Pipelined Execution", "to": "\uf06eFirst", "width": 2}, {"from": "Pipelined Execution", "to": "T+T/3", "width": 2}, {"from": "Pipelined Execution", "to": "Team Size", "width": 2}, {"from": "Pipelined Execution", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "Pipelined Execution", "to": "\uf06eCan", "width": 2}, {"from": "Sofware Process", "to": "\uf06eIn", "width": 2}, {"from": "Sofware Process", "to": "\uf06eFirst", "width": 2}, {"from": "Sofware Process", "to": "T+T/3", "width": 2}, {"from": "Sofware Process", "to": "Team Size", "width": 2}, {"from": "Sofware Process", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "Sofware Process", "to": "\uf06eCan", "width": 2}, {"from": "\uf06eIn", "to": "\uf06eFirst", "width": 2}, {"from": "\uf06eIn", "to": "T+T/3", "width": 2}, {"from": "\uf06eIn", "to": "Team Size", "width": 2}, {"from": "\uf06eIn", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "\uf06eIn", "to": "\uf06eCan", "width": 2}, {"from": "\uf06eFirst", "to": "T+T/3", "width": 2}, {"from": "\uf06eFirst", "to": "Team Size", "width": 2}, {"from": "\uf06eFirst", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "\uf06eFirst", "to": "\uf06eCan", "width": 2}, {"from": "T+T/3", "to": "Team Size", "width": 2}, {"from": "T+T/3", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "T+T/3", "to": "\uf06eCan", "width": 2}, {"from": "Team Size", "to": "Timeboxing Execution \n \nSoftware \nRequirements", "width": 2}, {"from": "Team Size", "to": "\uf06eCan", "width": 2}, {"from": "Timeboxing Execution \n \nSoftware \nRequirements", "to": "\uf06eCan", "width": 2}, {"from": "TB1", "to": "TB3\nRequirements\nAnalysis", "width": 2}, {"from": "TB1", "to": "Brook", "width": 2}, {"from": "TB3\nRequirements\nAnalysis", "to": "Sofware Process", "width": 2}, {"from": "TB3\nRequirements\nAnalysis", "to": "Brook", "width": 2}, {"from": "TB3\nRequirements\nAnalysis", "to": "Team Size", "width": 2}, {"from": "Sofware Process", "to": "Brook", "width": 2}, {"from": "Brook", "to": "Team Size", "width": 2}, {"from": "CM", "to": "Sofware Process", "width": 2}, {"from": "Sofware Process", "to": "UI", "width": 2}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"enabled": true, "stabilization": {"iterations": 100}}, "nodes": {"borderWidth": 2, "borderColor": "#ffffff", "font": {"size": 14, "color": "#ffffff"}, "shadow": true}, "edges": {"color": {"color": "#848484"}, "smooth": true, "shadow": true}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

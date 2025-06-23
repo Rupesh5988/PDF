@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 600px;
+                 background-color: #1a1a2e;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#54a0ff", "font": {"color": "white"}, "id": "\uf06eThese", "label": "\uf06eThese", "shape": "dot", "size": 25, "title": "\uf06eThese (NORP)"}, {"color": "#feca57", "font": {"color": "white"}, "id": "Sofware Process", "label": "Sofware Process", "shape": "dot", "size": 25, "title": "Sofware Process (PRODUCT)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "\uf06eAt", "label": "\uf06eAt", "shape": "dot", "size": 25, "title": "\uf06eAt (ORG)"}, {"color": "#45b7d1", "font": {"color": "white"}, "id": "\uf06eA", "label": "\uf06eA", "shape": "dot", "size": 25, "title": "\uf06eA (GPE)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Q\u0026P", "label": "Q\u0026P", "shape": "dot", "size": 25, "title": "Q\u0026P (ORG)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "\uf06eI.e", "label": "\uf06eI.e", "shape": "dot", "size": 25, "title": "\uf06eI.e (PERSON)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Early Defect Removal", "label": "Early Defect Removal", "shape": "dot", "size": 25, "title": "Early Defect Removal (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Process Models", "label": "Process Models", "shape": "dot", "size": 25, "title": "Process Models (ORG)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "\uf06ehelps", "label": "\uf06ehelps", "shape": "dot", "size": 25, "title": "\uf06ehelps (PERSON)"}, {"color": "#feca57", "font": {"color": "white"}, "id": "\uf06eForms", "label": "\uf06eForms", "shape": "dot", "size": 25, "title": "\uf06eForms (PRODUCT)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "\uf06eOutputs", "label": "\uf06eOutputs", "shape": "dot", "size": 25, "title": "\uf06eOutputs (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "\uf06eReq", "label": "\uf06eReq", "shape": "dot", "size": 25, "title": "\uf06eReq (ORG)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "Error", "label": "Error", "shape": "dot", "size": 25, "title": "Error (PERSON)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Process Models \n\uf06eA", "label": "Process Models \n\uf06eA", "shape": "dot", "size": 25, "title": "Process Models \n\uf06eA (ORG)"}, {"color": "#45b7d1", "font": {"color": "white"}, "id": "\uf06eGet", "label": "\uf06eGet", "shape": "dot", "size": 25, "title": "\uf06eGet (GPE)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "Waterfall Model \n\uf06eLinear", "label": "Waterfall Model \n\uf06eLinear", "shape": "dot", "size": 25, "title": "Waterfall Model \n\uf06eLinear (PERSON)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "Waterfall", "label": "Waterfall", "shape": "dot", "size": 25, "title": "Waterfall (PERSON)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "SRS", "label": "SRS", "shape": "dot", "size": 25, "title": "SRS (ORG)"}, {"color": "#feca57", "font": {"color": "white"}, "id": "\uf06eHelps", "label": "\uf06eHelps", "shape": "dot", "size": 25, "title": "\uf06eHelps (PRODUCT)"}, {"color": "#54a0ff", "font": {"color": "white"}, "id": "\uf06eBuild", "label": "\uf06eBuild", "shape": "dot", "size": 25, "title": "\uf06eBuild (NORP)"}, {"color": "#45b7d1", "font": {"color": "white"}, "id": "reqs", "label": "reqs", "shape": "dot", "size": 25, "title": "reqs (GPE)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Iterative Development \n\uf06eCounters", "label": "Iterative Development \n\uf06eCounters", "shape": "dot", "size": 25, "title": "Iterative Development \n\uf06eCounters (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Iterative Development \n", "label": "Iterative Development \n", "shape": "dot", "size": 25, "title": "Iterative Development \n (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "XP", "label": "XP", "shape": "dot", "size": 25, "title": "XP (ORG)"}, {"color": "#54a0ff", "font": {"color": "white"}, "id": "Agile", "label": "Agile", "shape": "dot", "size": 25, "title": "Agile (NORP)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Iterative Development", "label": "Iterative Development", "shape": "dot", "size": 25, "title": "Iterative Development (ORG)"}, {"color": "#feca57", "font": {"color": "white"}, "id": "\uf06eMakes", "label": "\uf06eMakes", "shape": "dot", "size": 25, "title": "\uf06eMakes (PRODUCT)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "\uf06eCan", "label": "\uf06eCan", "shape": "dot", "size": 25, "title": "\uf06eCan (ORG)"}, {"color": "#45b7d1", "font": {"color": "white"}, "id": "BT", "label": "BT", "shape": "dot", "size": 25, "title": "BT (GPE)"}, {"color": "#54a0ff", "font": {"color": "white"}, "id": "\uf06eSecond", "label": "\uf06eSecond", "shape": "dot", "size": 25, "title": "\uf06eSecond (NORP)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "T+T/3", "label": "T+T/3", "shape": "dot", "size": 25, "title": "T+T/3 (ORG)"}, {"color": "#45b7d1", "font": {"color": "white"}, "id": "T/3", "label": "T/3", "shape": "dot", "size": 25, "title": "T/3 (GPE)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Brook\u2019s", "label": "Brook\u2019s", "shape": "dot", "size": 25, "title": "Brook\u2019s (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "TB2\nBuild for TB4\nDeployment for TB3\nRequirements \nTeam\nRequirements\nAnalysis", "label": "TB2\nBuild for TB4\nDeployment for TB3\nRequirements \nTeam\nRequirements\nAnalysis", "shape": "dot", "size": 25, "title": "TB2\nBuild for TB4\nDeployment for TB3\nRequirements \nTeam\nRequirements\nAnalysis (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "TB2\nBuild for TB4\nDeployment for TB3\n\nSofware Process \n", "label": "TB2\nBuild for TB4\nDeployment for TB3\n\nSofware Process \n", "shape": "dot", "size": 25, "title": "TB2\nBuild for TB4\nDeployment for TB3\n\nSofware Process \n (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "CM", "label": "CM", "shape": "dot", "size": 25, "title": "CM (ORG)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "Front", "label": "Front", "shape": "dot", "size": 25, "title": "Front (ORG)"}, {"color": "#ff6b6b", "font": {"color": "white"}, "id": "Disallows", "label": "Disallows", "shape": "dot", "size": 25, "title": "Disallows (PERSON)"}, {"color": "#4ecdc4", "font": {"color": "white"}, "id": "UI", "label": "UI", "shape": "dot", "size": 25, "title": "UI (ORG)"}]);
+                  edges = new vis.DataSet([{"from": "Sofware Process", "to": "\uf06eAt", "width": 2}, {"from": "Sofware Process", "to": "\uf06eA", "width": 2}, {"from": "Sofware Process", "to": "Q\u0026P", "width": 2}, {"from": "Sofware Process", "to": "\uf06eI.e", "width": 2}, {"from": "\uf06eAt", "to": "\uf06eA", "width": 2}, {"from": "\uf06eAt", "to": "Q\u0026P", "width": 2}, {"from": "\uf06eAt", "to": "\uf06eI.e", "width": 2}, {"from": "\uf06eA", "to": "Q\u0026P", "width": 2}, {"from": "\uf06eA", "to": "\uf06eI.e", "width": 2}, {"from": "Q\u0026P", "to": "Q\u0026P", "width": 2}, {"from": "Q\u0026P", "to": "\uf06eI.e", "width": 2}, {"from": "Q\u0026P", "to": "Early Defect Removal", "width": 2}, {"from": "Early Defect Removal", "to": "\uf06eI.e", "width": 2}, {"from": "Q\u0026P", "to": "Process Models", "width": 2}, {"from": "Sofware Process", "to": "Sofware Process", "width": 2}, {"from": "Sofware Process", "to": "Process Models", "width": 2}, {"from": "\uf06ehelps", "to": "\uf06eForms", "width": 2}, {"from": "Sofware Process", "to": "\uf06eOutputs", "width": 2}, {"from": "Process Models \n\uf06eA", "to": "\uf06eI.e", "width": 2}, {"from": "Process Models \n\uf06eA", "to": "\uf06eGet", "width": 2}, {"from": "\uf06eI.e", "to": "\uf06eGet", "width": 2}, {"from": "Sofware Process", "to": "Waterfall Model \n\uf06eLinear", "width": 2}, {"from": "Sofware Process", "to": "Waterfall", "width": 2}, {"from": "Sofware Process", "to": "SRS", "width": 2}, {"from": "Sofware Process", "to": "\uf06eHelps", "width": 2}, {"from": "Sofware Process", "to": "\uf06eBuild", "width": 2}, {"from": "Sofware Process", "to": "reqs", "width": 2}, {"from": "Sofware Process", "to": "Iterative Development \n\uf06eCounters", "width": 2}, {"from": "Sofware Process", "to": "Iterative Development \n", "width": 2}, {"from": "Sofware Process", "to": "XP", "width": 2}, {"from": "Sofware Process", "to": "Agile", "width": 2}, {"from": "Sofware Process", "to": "Iterative Development", "width": 2}, {"from": "Sofware Process", "to": "\uf06eMakes", "width": 2}, {"from": "Sofware Process", "to": "\uf06eThese", "width": 2}, {"from": "Sofware Process", "to": "\uf06eCan", "width": 2}, {"from": "Sofware Process", "to": "BT", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "Waterfall", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "SRS", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "\uf06eI.e", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "\uf06eHelps", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "\uf06eA", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "\uf06eBuild", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "reqs", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "Iterative Development \n\uf06eCounters", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "Iterative Development \n", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "XP", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "Agile", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "Iterative Development", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "\uf06eMakes", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "\uf06eThese", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "\uf06eCan", "width": 2}, {"from": "Waterfall Model \n\uf06eLinear", "to": "BT", "width": 2}, {"from": "Waterfall", "to": "SRS", "width": 2}, {"from": "Waterfall", "to": "\uf06eI.e", "width": 2}, {"from": "Waterfall", "to": "\uf06eHelps", "width": 2}, {"from": "Waterfall", "to": "\uf06eA", "width": 2}, {"from": "Waterfall", "to": "\uf06eBuild", "width": 2}, {"from": "Waterfall", "to": "reqs", "width": 2}, {"from": "Waterfall", "to": "Iterative Development \n\uf06eCounters", "width": 2}, {"from": "Waterfall", "to": "Iterative Development \n", "width": 2}, {"from": "Waterfall", "to": "XP", "width": 2}, {"from": "Waterfall", "to": "Agile", "width": 2}, {"from": "Waterfall", "to": "Iterative Development", "width": 2}, {"from": "Waterfall", "to": "\uf06eMakes", "width": 2}, {"from": "Waterfall", "to": "\uf06eThese", "width": 2}, {"from": "Waterfall", "to": "\uf06eCan", "width": 2}, {"from": "Waterfall", "to": "BT", "width": 2}, {"from": "SRS", "to": "\uf06eI.e", "width": 2}, {"from": "SRS", "to": "\uf06eHelps", "width": 2}, {"from": "SRS", "to": "\uf06eA", "width": 2}, {"from": "SRS", "to": "\uf06eBuild", "width": 2}, {"from": "SRS", "to": "reqs", "width": 2}, {"from": "SRS", "to": "Iterative Development \n\uf06eCounters", "width": 2}, {"from": "SRS", "to": "Iterative Development \n", "width": 2}, {"from": "SRS", "to": "XP", "width": 2}, {"from": "SRS", "to": "Agile", "width": 2}, {"from": "SRS", "to": "Iterative Development", "width": 2}, {"from": "SRS", "to": "\uf06eMakes", "width": 2}, {"from": "SRS", "to": "\uf06eThese", "width": 2}, {"from": "SRS", "to": "\uf06eCan", "width": 2}, {"from": "SRS", "to": "BT", "width": 2}, {"from": "\uf06eI.e", "to": "\uf06eHelps", "width": 2}, {"from": "\uf06eI.e", "to": "\uf06eBuild", "width": 2}, {"from": "\uf06eI.e", "to": "reqs", "width": 2}, {"from": "\uf06eI.e", "to": "Iterative Development \n\uf06eCounters", "width": 2}, {"from": "\uf06eI.e", "to": "Iterative Development \n", "width": 2}, {"from": "\uf06eI.e", "to": "XP", "width": 2}, {"from": "\uf06eI.e", "to": "Agile", "width": 2}, {"from": "\uf06eI.e", "to": "Iterative Development", "width": 2}, {"from": "\uf06eI.e", "to": "\uf06eMakes", "width": 2}, {"from": "\uf06eI.e", "to": "\uf06eThese", "width": 2}, {"from": "\uf06eI.e", "to": "\uf06eCan", "width": 2}, {"from": "\uf06eI.e", "to": "BT", "width": 2}, {"from": "\uf06eHelps", "to": "\uf06eA", "width": 2}, {"from": "\uf06eHelps", "to": "\uf06eBuild", "width": 2}, {"from": "\uf06eHelps", "to": "reqs", "width": 2}, {"from": "\uf06eHelps", "to": "Iterative Development \n\uf06eCounters", "width": 2}, {"from": "\uf06eHelps", "to": "Iterative Development \n", "width": 2}, {"from": "\uf06eHelps", "to": "XP", "width": 2}, {"from": "\uf06eHelps", "to": "Agile", "width": 2}, {"from": "\uf06eHelps", "to": "Iterative Development", "width": 2}, {"from": "\uf06eHelps", "to": "\uf06eMakes", "width": 2}, {"from": "\uf06eHelps", "to": "\uf06eThese", "width": 2}, {"from": "\uf06eHelps", "to": "\uf06eCan", "width": 2}, {"from": "\uf06eHelps", "to": "BT", "width": 2}, {"from": "\uf06eA", "to": "\uf06eBuild", "width": 2}, {"from": "\uf06eA", "to": "reqs", "width": 2}, {"from": "\uf06eA", "to": "Iterative Development \n\uf06eCounters", "width": 2}, {"from": "\uf06eA", "to": "Iterative Development \n", "width": 2}, {"from": "\uf06eA", "to": "XP", "width": 2}, {"from": "\uf06eA", "to": "Agile", "width": 2}, {"from": "\uf06eA", "to": "Iterative Development", "width": 2}, {"from": "\uf06eA", "to": "\uf06eMakes", "width": 2}, {"from": "\uf06eA", "to": "\uf06eThese", "width": 2}, {"from": "\uf06eA", "to": "\uf06eCan", "width": 2}, {"from": "\uf06eA", "to": "BT", "width": 2}, {"from": "\uf06eBuild", "to": "reqs", "width": 2}, {"from": "\uf06eBuild", "to": "Iterative Development \n\uf06eCounters", "width": 2}, {"from": "\uf06eBuild", "to": "Iterative Development \n", "width": 2}, {"from": "\uf06eBuild", "to": "XP", "width": 2}, {"from": "\uf06eBuild", "to": "Agile", "width": 2}, {"from": "\uf06eBuild", "to": "Iterative Development", "width": 2}, {"from": "\uf06eBuild", "to": "\uf06eMakes", "width": 2}, {"from": "\uf06eBuild", "to": "\uf06eThese", "width": 2}, {"from": "\uf06eBuild", "to": "\uf06eCan", "width": 2}, {"from": "\uf06eBuild", "to": "BT", "width": 2}, {"from": "reqs", "to": "Iterative Development \n\uf06eCounters", "width": 2}, {"from": "reqs", "to": "Iterative Development \n", "width": 2}, {"from": "reqs", "to": "XP", "width": 2}, {"from": "reqs", "to": "Agile", "width": 2}, {"from": "reqs", "to": "Iterative Development", "width": 2}, {"from": "reqs", "to": "\uf06eMakes", "width": 2}, {"from": "reqs", "to": "\uf06eThese", "width": 2}, {"from": "reqs", "to": "\uf06eCan", "width": 2}, {"from": "reqs", "to": "BT", "width": 2}, {"from": "Iterative Development \n\uf06eCounters", "to": "Iterative Development \n", "width": 2}, {"from": "Iterative Development \n\uf06eCounters", "to": "XP", "width": 2}, {"from": "Iterative Development \n\uf06eCounters", "to": "Agile", "width": 2}, {"from": "Iterative Development \n\uf06eCounters", "to": "Iterative Development", "width": 2}, {"from": "Iterative Development \n\uf06eCounters", "to": "\uf06eMakes", "width": 2}, {"from": "Iterative Development \n\uf06eCounters", "to": "\uf06eThese", "width": 2}, {"from": "Iterative Development \n\uf06eCounters", "to": "\uf06eCan", "width": 2}, {"from": "Iterative Development \n\uf06eCounters", "to": "BT", "width": 2}, {"from": "Iterative Development \n", "to": "XP", "width": 2}, {"from": "Iterative Development \n", "to": "Agile", "width": 2}, {"from": "Iterative Development \n", "to": "Iterative Development", "width": 2}, {"from": "Iterative Development \n", "to": "\uf06eMakes", "width": 2}, {"from": "Iterative Development \n", "to": "\uf06eThese", "width": 2}, {"from": "Iterative Development \n", "to": "\uf06eCan", "width": 2}, {"from": "Iterative Development \n", "to": "BT", "width": 2}, {"from": "XP", "to": "Agile", "width": 2}, {"from": "XP", "to": "Iterative Development", "width": 2}, {"from": "XP", "to": "\uf06eMakes", "width": 2}, {"from": "XP", "to": "\uf06eThese", "width": 2}, {"from": "XP", "to": "\uf06eCan", "width": 2}, {"from": "XP", "to": "BT", "width": 2}, {"from": "Agile", "to": "Iterative Development", "width": 2}, {"from": "Agile", "to": "\uf06eMakes", "width": 2}, {"from": "Agile", "to": "\uf06eThese", "width": 2}, {"from": "Agile", "to": "\uf06eCan", "width": 2}, {"from": "Agile", "to": "BT", "width": 2}, {"from": "Iterative Development", "to": "\uf06eMakes", "width": 2}, {"from": "Iterative Development", "to": "\uf06eThese", "width": 2}, {"from": "Iterative Development", "to": "\uf06eCan", "width": 2}, {"from": "Iterative Development", "to": "BT", "width": 2}, {"from": "\uf06eMakes", "to": "\uf06eThese", "width": 2}, {"from": "\uf06eMakes", "to": "\uf06eCan", "width": 2}, {"from": "\uf06eMakes", "to": "BT", "width": 2}, {"from": "\uf06eThese", "to": "\uf06eCan", "width": 2}, {"from": "\uf06eThese", "to": "BT", "width": 2}, {"from": "\uf06eCan", "to": "\uf06eCan", "width": 2}, {"from": "\uf06eCan", "to": "BT", "width": 2}, {"from": "BT", "to": "BT", "width": 2}, {"from": "\uf06eSecond", "to": "T+T/3", "width": 2}, {"from": "\uf06eSecond", "to": "T/3", "width": 2}, {"from": "T+T/3", "to": "T/3", "width": 2}, {"from": "Brook\u2019s", "to": "TB2\nBuild for TB4\nDeployment for TB3\nRequirements \nTeam\nRequirements\nAnalysis", "width": 2}, {"from": "Brook\u2019s", "to": "TB2\nBuild for TB4\nDeployment for TB3\n\nSofware Process \n", "width": 2}, {"from": "TB2\nBuild for TB4\nDeployment for TB3\nRequirements \nTeam\nRequirements\nAnalysis", "to": "TB2\nBuild for TB4\nDeployment for TB3\n\nSofware Process \n", "width": 2}, {"from": "CM", "to": "Sofware Process", "width": 2}, {"from": "Front", "to": "Disallows", "width": 2}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"enabled": true, "stabilization": {"iterations": 100}}, "nodes": {"borderWidth": 2, "borderColor": "#ffffff", "font": {"size": 14, "color": "#ffffff"}, "shadow": true}, "edges": {"color": {"color": "#848484"}, "smooth": true, "shadow": true}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

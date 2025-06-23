@@ -1,0 +1,12 @@
+streamlit
+spacy
+PyPDF2
+pyvis
+fitz
+Pillow
+plotly
+pandas
+numpy
+scikit-learn
+matplotlib
+streamlit-pdf-viewer
